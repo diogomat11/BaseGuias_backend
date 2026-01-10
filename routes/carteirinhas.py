@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Carteirinha, Job, BaseGuia
 from typing import List, Optional
-import pandas as pd
 import io
+from openpyxl import load_workbook
 
 router = APIRouter(
     prefix="/carteirinhas",
