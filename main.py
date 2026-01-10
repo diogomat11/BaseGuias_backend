@@ -1,12 +1,16 @@
+```python
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from .database import engine, Base
+from .routes import auth, carteirinhas, jobs, guias, logs
+
+# Create tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Base Guias Unimed API", version="1.0.0")
 
-# CORS
-origins = ["*"] # Allow all for development
-
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
