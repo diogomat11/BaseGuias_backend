@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from ..database import get_db
-from ..models import BaseGuia, Carteirinha
+from database import get_db
+from models import BaseGuia, Carteirinha
 from typing import Optional
-from datetime import date, datetime
-import pandas as pd
+from datetime import date, datetime, timedelta
+from openpyxl import Workbook
 import io
 
 router = APIRouter(
@@ -45,43 +45,47 @@ def export_guias(
     query = db.query(BaseGuia).join(Carteirinha)
     
     if created_at_start:
-         query = query.filter(BaseGuia.updated_at >= created_at_start)
+        query = query.filter(BaseGuia.updated_at >= created_at_start)
     if created_at_end:
-         query = query.filter(BaseGuia.updated_at <= str(datetime.strptime(created_at_end, '%Y-%m-%d').date() + pd.Timedelta(days=1)))
+        # Add one day to include full end date
+        end_dt = datetime.strptime(created_at_end, '%Y-%m-%d').date() + timedelta(days=1)
+        query = query.filter(BaseGuia.updated_at <= str(end_dt))
     if carteirinha_id:
         query = query.filter(BaseGuia.carteirinha_id == carteirinha_id)
 
     results = query.all()
 
-    # Format for Excel
-    data = []
+    # Helper to format date
+    def fmt_date(d):
+        return d.strftime("%d/%m/%Y") if d else ""
+
+    # Create Excel workbook with openpyxl
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Guias"
+    
+    # Headers
+    headers = ["Carteirinha", "Paciente", "Guia", "Data_Autorização", "Senha", 
+               "Validade", "Código_Terapia", "Qtde_Solicitada", "Sessões Autorizadas", "Importado_Em"]
+    ws.append(headers)
+    
+    # Data rows
     for row in results:
-        # Helper to format date
-        def fmt_date(d):
-            return d.strftime("%d/%m/%Y") if d else ""
-
-        data.append({
-            "Carteirinha": row.carteirinha_rel.carteirinha,
-            "Paciente": row.carteirinha_rel.paciente,
-            "Guia": row.guia,
-            "Data_Autorização": fmt_date(row.data_autorizacao),
-            "Senha": row.senha,
-            "Validade": fmt_date(row.validade),
-            "Código_Terapia": row.codigo_terapia,
-            "Qtde_Solicitada": row.qtde_solicitada,
-            "Sessões Autorizadas": row.sessoes_autorizadas,
-            "Importado_Em": row.created_at.strftime("%d/%m/%Y %H:%M:%S")
-        })
-
-    # Manually creating DF to ensure columns order if list is not empty
-    if data:
-        df = pd.DataFrame(data)
-    else:
-        df = pd.DataFrame()
+        ws.append([
+            row.carteirinha_rel.carteirinha if row.carteirinha_rel else "",
+            row.carteirinha_rel.paciente if row.carteirinha_rel else "",
+            row.guia,
+            fmt_date(row.data_autorizacao),
+            row.senha,
+            fmt_date(row.validade),
+            row.codigo_terapia,
+            row.qtde_solicitada,
+            row.sessoes_autorizadas,
+            row.created_at.strftime("%d/%m/%Y %H:%M:%S") if row.created_at else ""
+        ])
 
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Guias')
+    wb.save(output)
     output.seek(0)
     
     headers = {

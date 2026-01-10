@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body
 from sqlalchemy.orm import Session
-from ..database import get_db
-from ..models import Carteirinha, Job, BaseGuia
+from database import get_db
+from models import Carteirinha, Job, BaseGuia
 from typing import List, Optional
 import io
 from openpyxl import load_workbook

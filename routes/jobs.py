@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
-from ..database import get_db
-from ..models import Job, Carteirinha
+from database import get_db
+from models import Job, Carteirinha
 from typing import List, Optional
 from pydantic import BaseModel
 
