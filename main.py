@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routes import auth, carteirinhas, jobs, guias, logs
+from routes import auth, carteirinhas, jobs, guias, logs, dashboard
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -27,3 +27,4 @@ app.include_router(carteirinhas.router)
 app.include_router(jobs.router)
 app.include_router(guias.router)
 app.include_router(logs.router, prefix="/api/logs")
+app.include_router(dashboard.router)

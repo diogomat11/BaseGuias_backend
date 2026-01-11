@@ -20,7 +20,8 @@ def list_guias(
     created_at_start: Optional[date] = None, 
     created_at_end: Optional[date] = None,
     carteirinha_id: Optional[int] = None,
-    limit: int = 100,
+    limit: int = 25,
+    skip: int = 0,
     db: Session = Depends(get_db)
 ):
     query = db.query(BaseGuia)
@@ -28,12 +29,16 @@ def list_guias(
     if created_at_start:
         query = query.filter(BaseGuia.updated_at >= created_at_start)
     if created_at_end:
-        query = query.filter(BaseGuia.updated_at <= created_at_end)
+        # Inclusive end date (until end of day)
+        end_dt = datetime.combine(created_at_end, datetime.min.time()) + timedelta(days=1)
+        query = query.filter(BaseGuia.updated_at < end_dt)
     if carteirinha_id:
         query = query.filter(BaseGuia.carteirinha_id == carteirinha_id)
 
-    guias = query.limit(limit).all()
-    return guias
+    total = query.count()
+    guias = query.order_by(BaseGuia.created_at.desc()).limit(limit).offset(skip).all()
+    
+    return {"data": guias, "total": total, "skip": skip, "limit": limit}
 
 @router.get("/export")
 def export_guias(
