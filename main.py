@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+# Trigger Redeploy
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from routes import auth, carteirinhas, jobs, guias, logs, dashboard
